@@ -143,3 +143,58 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* ─── Spore Network: Landing Page Styles ─── */
+
+/* Magnetic buttons */
+.magnetic-btn {
+  cursor: pointer;
+  border: none;
+  transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.magnetic-btn:hover {
+  transform: scale(1.03);
+}
+.magnetic-btn-bg {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: inherit;
+  transform: translateY(100%);
+  transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.magnetic-btn:hover .magnetic-btn-bg {
+  transform: translateY(0);
+}
+
+/* Protocol SVG animations */
+.protocol-svg-spin {
+  animation: proto-spin 12s linear infinite;
+}
+@keyframes proto-spin {
+  to { transform: rotate(360deg); }
+}
+
+.protocol-scanner line {
+  animation: scanner-sweep 3s ease-in-out infinite;
+}
+@keyframes scanner-sweep {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(80px); }
+}
+
+.protocol-waveform {
+  stroke-dasharray: 400;
+  stroke-dashoffset: 400;
+  animation: waveform-draw 3s ease-in-out infinite;
+}
+@keyframes waveform-draw {
+  0% { stroke-dashoffset: 400; }
+  50% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: -400; }
+}
+
+/* Smooth scroll */
+html {
+  scroll-behavior: smooth;
+}
