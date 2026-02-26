@@ -194,6 +194,37 @@
   100% { stroke-dashoffset: -400; }
 }
 
+/* Hero floating fragments */
+.hero-fragment {
+  animation: fragment-drift linear infinite;
+  opacity: 0;
+}
+@keyframes fragment-drift {
+  0% {
+    opacity: 0;
+    transform: translateY(0) translateX(0);
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-60px) translateX(30px);
+  }
+}
+
+/* Scroll indicator */
+.animate-scroll-line {
+  animation: scroll-line 2s ease-in-out infinite;
+}
+@keyframes scroll-line {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+
 /* Smooth scroll */
 html {
   scroll-behavior: smooth;

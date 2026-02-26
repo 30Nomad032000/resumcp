@@ -113,8 +113,239 @@ function MagneticButton({
 }
 
 /* ═══════════════════════════════════════════════════════════
-   B. HERO SECTION — "The Opening Shot"
+   B. HERO SECTION — "The Opening Shot" with Mycelium Canvas
    ═══════════════════════════════════════════════════════════ */
+
+interface Particle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  radius: number;
+  life: number;
+  maxLife: number;
+  pulse: number;
+}
+
+function MyceliumCanvas() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const mouseRef = useRef({ x: -1000, y: -1000 });
+  const particlesRef = useRef<Particle[]>([]);
+  const animRef = useRef<number>(0);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const resize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+    resize();
+    window.addEventListener("resize", resize);
+
+    // Initialize particles
+    const PARTICLE_COUNT = 120;
+    const particles: Particle[] = [];
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        vx: (Math.random() - 0.5) * 0.4,
+        vy: (Math.random() - 0.5) * 0.4,
+        radius: Math.random() * 2 + 0.5,
+        life: Math.random() * 200,
+        maxLife: 200 + Math.random() * 200,
+        pulse: Math.random() * Math.PI * 2,
+      });
+    }
+    particlesRef.current = particles;
+
+    const CONNECTION_DIST = 160;
+    const MOUSE_RADIUS = 200;
+
+    const animate = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const mx = mouseRef.current.x;
+      const my = mouseRef.current.y;
+      const time = Date.now() * 0.001;
+
+      // Update & draw particles
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        p.pulse += 0.02;
+        p.life++;
+
+        // Mouse repulsion/attraction
+        const dmx = p.x - mx;
+        const dmy = p.y - my;
+        const dMouse = Math.sqrt(dmx * dmx + dmy * dmy);
+        if (dMouse < MOUSE_RADIUS && dMouse > 0) {
+          const force = (MOUSE_RADIUS - dMouse) / MOUSE_RADIUS;
+          // Gentle orbit effect
+          p.vx += (dmy / dMouse) * force * 0.02;
+          p.vy += (-dmx / dMouse) * force * 0.02;
+        }
+
+        // Drift
+        p.vx += Math.sin(time + p.y * 0.005) * 0.003;
+        p.vy += Math.cos(time + p.x * 0.005) * 0.003;
+
+        // Damping
+        p.vx *= 0.995;
+        p.vy *= 0.995;
+
+        p.x += p.vx;
+        p.y += p.vy;
+
+        // Wrap
+        if (p.x < -20) p.x = canvas.width + 20;
+        if (p.x > canvas.width + 20) p.x = -20;
+        if (p.y < -20) p.y = canvas.height + 20;
+        if (p.y > canvas.height + 20) p.y = -20;
+
+        // Draw node
+        const glow = 0.3 + Math.sin(p.pulse) * 0.15;
+        const brightness = dMouse < MOUSE_RADIUS ? 0.6 + (1 - dMouse / MOUSE_RADIUS) * 0.4 : glow;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius * (1 + Math.sin(p.pulse) * 0.3), 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(74, 222, 128, ${brightness})`;
+        ctx.fill();
+
+        // Outer glow for brighter particles
+        if (brightness > 0.5) {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.radius * 4, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(74, 222, 128, ${brightness * 0.08})`;
+          ctx.fill();
+        }
+      }
+
+      // Draw connections
+      for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+          const dx = particles[i].x - particles[j].x;
+          const dy = particles[i].y - particles[j].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < CONNECTION_DIST) {
+            const opacity = (1 - dist / CONNECTION_DIST) * 0.25;
+
+            // Brighter connections near mouse
+            const midX = (particles[i].x + particles[j].x) / 2;
+            const midY = (particles[i].y + particles[j].y) / 2;
+            const dMid = Math.sqrt((midX - mx) ** 2 + (midY - my) ** 2);
+            const mouseBoost = dMid < MOUSE_RADIUS ? (1 - dMid / MOUSE_RADIUS) * 0.4 : 0;
+
+            ctx.beginPath();
+            ctx.moveTo(particles[i].x, particles[i].y);
+            // Slightly curved connections for organic feel
+            const cpx = midX + Math.sin(time + i * 0.1) * 8;
+            const cpy = midY + Math.cos(time + j * 0.1) * 8;
+            ctx.quadraticCurveTo(cpx, cpy, particles[j].x, particles[j].y);
+            ctx.strokeStyle = `rgba(74, 222, 128, ${opacity + mouseBoost})`;
+            ctx.lineWidth = 0.5 + mouseBoost * 2;
+            ctx.stroke();
+          }
+        }
+      }
+
+      // Occasional bright "spore" burst near mouse
+      const dMouseCenter = Math.sqrt((canvas.width / 2 - mx) ** 2 + (canvas.height / 2 - my) ** 2);
+      const mouseActive = mx > -500 && my > -500;
+      if (mouseActive) {
+        const burstCount = 3;
+        for (let b = 0; b < burstCount; b++) {
+          const angle = time * 2 + (b * Math.PI * 2) / burstCount;
+          const dist = 40 + Math.sin(time * 3 + b) * 20;
+          const bx = mx + Math.cos(angle) * dist;
+          const by = my + Math.sin(angle) * dist;
+          ctx.beginPath();
+          ctx.arc(bx, by, 1, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(74, 222, 128, ${0.3 + Math.sin(time * 4 + b) * 0.2})`;
+          ctx.fill();
+        }
+      }
+
+      animRef.current = requestAnimationFrame(animate);
+    };
+    animate();
+
+    const handleMouse = (e: MouseEvent) => {
+      mouseRef.current = { x: e.clientX, y: e.clientY };
+    };
+    const handleTouch = (e: TouchEvent) => {
+      if (e.touches.length > 0) {
+        mouseRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      }
+    };
+    const handleLeave = () => {
+      mouseRef.current = { x: -1000, y: -1000 };
+    };
+
+    window.addEventListener("mousemove", handleMouse);
+    window.addEventListener("touchmove", handleTouch);
+    window.addEventListener("mouseleave", handleLeave);
+
+    return () => {
+      cancelAnimationFrame(animRef.current);
+      window.removeEventListener("resize", resize);
+      window.removeEventListener("mousemove", handleMouse);
+      window.removeEventListener("touchmove", handleTouch);
+      window.removeEventListener("mouseleave", handleLeave);
+    };
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="absolute inset-0 w-full h-full"
+      style={{ zIndex: 1 }}
+    />
+  );
+}
+
+/* Floating data fragments that drift across the hero */
+function FloatingFragments() {
+  const fragments = [
+    "set_personal_info()",
+    "localStorage",
+    "add_experience()",
+    "navigator.modelContext",
+    "WebMCP",
+    "generate_pdf()",
+    "ATS-ready",
+    "set_template('modern')",
+    "zero-knowledge",
+    "client-side only",
+    "18 tools",
+    "privacy:true",
+  ];
+
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 2 }}>
+      {fragments.map((frag, i) => (
+        <span
+          key={i}
+          className="hero-fragment absolute whitespace-nowrap"
+          style={{
+            fontFamily: "var(--font-fira-code), 'Fira Code', monospace",
+            fontSize: `${9 + Math.random() * 3}px`,
+            color: `${T.biolume}${Math.floor(8 + Math.random() * 18).toString(16)}`,
+            left: `${5 + Math.random() * 85}%`,
+            top: `${10 + Math.random() * 70}%`,
+            animationDelay: `${i * 0.7}s`,
+            animationDuration: `${18 + Math.random() * 12}s`,
+          }}
+        >
+          {frag}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function HeroSection() {
   const heroRef = useRef<HTMLDivElement>(null);
 
@@ -126,21 +357,21 @@ function HeroSection() {
         duration: 1.2,
         ease: "power3.out",
         stagger: 0.08,
-        delay: 0.3,
+        delay: 0.4,
       });
       gsap.from(".hero-cta", {
         y: 40,
         opacity: 0,
         duration: 1,
         ease: "power3.out",
-        delay: 0.8,
+        delay: 1.0,
       });
       gsap.from(".hero-badge", {
         y: 20,
         opacity: 0,
         duration: 0.8,
         ease: "power3.out",
-        delay: 1.0,
+        delay: 1.2,
       });
     }, heroRef);
     return () => ctx.revert();
@@ -151,25 +382,34 @@ function HeroSection() {
       id="hero"
       ref={heroRef}
       className="relative w-full flex flex-col justify-end overflow-hidden"
-      style={{ height: "100dvh" }}
+      style={{ height: "100dvh", background: T.soil }}
     >
-      {/* Background Image */}
-      <div
-        className="absolute inset-0 bg-cover bg-center"
-        style={{
-          backgroundImage: `url(https://images.unsplash.com/photo-1518882570713-3d0d4d18e36c?w=1920&q=80&auto=format)`,
-        }}
-      />
-      {/* Gradient overlay */}
+      {/* Mycelium network canvas */}
+      <MyceliumCanvas />
+
+      {/* Floating code fragments */}
+      <FloatingFragments />
+
+      {/* Radial glow from bottom-left where content sits */}
       <div
         className="absolute inset-0"
         style={{
-          background: `linear-gradient(to top, ${T.soil} 0%, ${T.soil}CC 30%, ${T.soil}88 60%, transparent 100%)`,
+          zIndex: 3,
+          background: `radial-gradient(ellipse 60% 50% at 20% 85%, ${T.soil}EE 0%, transparent 70%)`,
+        }}
+      />
+
+      {/* Subtle vignette */}
+      <div
+        className="absolute inset-0"
+        style={{
+          zIndex: 3,
+          background: `radial-gradient(ellipse at center, transparent 40%, ${T.soil}88 100%)`,
         }}
       />
 
       {/* Content — bottom left */}
-      <div className="relative z-10 px-8 md:px-16 pb-16 md:pb-24 max-w-4xl">
+      <div className="relative px-8 md:px-16 pb-16 md:pb-24 max-w-4xl" style={{ zIndex: 10 }}>
         <p
           className="hero-line text-sm tracking-[0.25em] uppercase mb-6"
           style={{ color: T.biolume, fontFamily: "var(--font-fira-code), 'Fira Code', monospace" }}
@@ -212,6 +452,19 @@ function HeroSection() {
           >
             No sign-up required
           </span>
+        </div>
+      </div>
+
+      {/* Scroll indicator */}
+      <div
+        className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
+        style={{ zIndex: 10 }}
+      >
+        <div className="hero-badge w-[1px] h-8 overflow-hidden">
+          <div
+            className="w-full h-full animate-scroll-line"
+            style={{ background: `linear-gradient(to bottom, transparent, ${T.biolume}, transparent)` }}
+          />
         </div>
       </div>
     </section>
@@ -596,11 +849,15 @@ function PhilosophySection() {
       className="relative py-32 md:py-40 px-8 md:px-16 overflow-hidden"
       style={{ background: T.soil }}
     >
-      {/* Parallax texture */}
+      {/* Organic texture — CSS-only, no external images */}
       <div
-        className="absolute inset-0 bg-cover bg-center opacity-[0.06]"
+        className="absolute inset-0 opacity-[0.04]"
         style={{
-          backgroundImage: `url(https://images.unsplash.com/photo-1604537529428-15bcbeecfe4d?w=1920&q=80&auto=format)`,
+          backgroundImage: `
+            radial-gradient(ellipse 800px 600px at 20% 50%, ${T.biolume}22, transparent),
+            radial-gradient(ellipse 600px 400px at 80% 30%, ${T.biolume}11, transparent),
+            radial-gradient(ellipse 400px 300px at 60% 80%, ${T.biolume}18, transparent)
+          `,
         }}
       />
 
