@@ -8,7 +8,15 @@ import { CustomStyleUploader } from "./CustomStyleUploader";
 import { WebMcpStatus } from "./WebMcpStatus";
 import { usePdfExport } from "@/hooks/usePdfExport";
 import { useResumeStore } from "@/hooks/useResumeStore";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Paintbrush, RotateCcw } from "lucide-react";
 import Link from "next/link";
 
 export function BuilderLayout() {
@@ -16,19 +24,26 @@ export function BuilderLayout() {
   const { clearAll } = useResumeStore();
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Top Bar */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-[1600px] mx-auto px-4 py-3 flex items-center justify-between">
+      <header className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur-sm">
+        <div className="max-w-[1600px] mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link href="/" className="text-xl font-bold text-gray-900">
-              Resu<span className="text-indigo-600">MCP</span>
+            <Link href="/" className="text-lg font-bold tracking-tight">
+              Resu<span className="text-primary">MCP</span>
             </Link>
+            <Separator orientation="vertical" className="h-5" />
             <WebMcpStatus />
           </div>
-          <div className="flex items-center gap-3">
-            <Button variant="danger" size="sm" onClick={clearAll}>
-              Clear All
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearAll}
+              className="gap-1.5 text-muted-foreground hover:text-destructive"
+            >
+              <RotateCcw className="size-3.5" />
+              Clear
             </Button>
             <PdfDownloadButton onPrint={handlePrint} />
           </div>
@@ -39,7 +54,9 @@ export function BuilderLayout() {
       <div className="max-w-[1600px] mx-auto px-4 py-6">
         {/* Template Selector */}
         <div className="mb-6">
-          <h2 className="text-sm font-medium text-gray-700 mb-2">Template</h2>
+          <h2 className="text-sm font-medium text-muted-foreground mb-2 uppercase tracking-wider">
+            Template
+          </h2>
           <TemplateSelector />
         </div>
 
@@ -48,10 +65,26 @@ export function BuilderLayout() {
           {/* Left: Forms */}
           <div className="space-y-4">
             <FormPanel />
-            <div className="rounded-lg border border-gray-200 bg-white p-4">
-              <h3 className="font-medium text-gray-800 mb-3">Custom Styles</h3>
-              <CustomStyleUploader />
-            </div>
+
+            {/* Custom CSS section */}
+            <Accordion type="single" collapsible>
+              <AccordionItem
+                value="custom-css"
+                className="rounded-lg border bg-card px-4"
+              >
+                <AccordionTrigger className="hover:no-underline gap-3 py-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center size-7 rounded-md bg-muted">
+                      <Paintbrush className="size-3.5 text-muted-foreground" />
+                    </div>
+                    <span className="font-medium">Custom Styles</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="pb-4">
+                  <CustomStyleUploader />
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           </div>
 
           {/* Right: Preview */}

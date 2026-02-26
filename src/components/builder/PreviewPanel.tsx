@@ -9,8 +9,11 @@ export const PreviewPanel = forwardRef<HTMLDivElement>(
     const { state } = useResumeStore();
 
     return (
-      <div className="bg-gray-100 rounded-lg p-4 overflow-auto">
-        <div className="shadow-lg" style={{ minHeight: "11in" }}>
+      <div className="rounded-xl bg-muted/50 p-4 overflow-auto border">
+        <div
+          className="bg-white shadow-lg rounded-sm mx-auto"
+          style={{ minHeight: "11in", maxWidth: "8.5in" }}
+        >
           <TemplateWrapper ref={ref} data={state} />
         </div>
       </div>

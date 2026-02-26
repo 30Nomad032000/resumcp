@@ -2,22 +2,27 @@
 
 import { useResumeStore } from "@/hooks/useResumeStore";
 import { TemplateName } from "@/types/resume";
+import { cn } from "@/lib/utils";
+import { FileText, LayoutDashboard, Minus } from "lucide-react";
 
-const templates: { id: TemplateName; name: string; description: string }[] = [
+const templates: { id: TemplateName; name: string; description: string; icon: React.ElementType }[] = [
   {
     id: "professional",
     name: "Professional",
-    description: "Classic serif, single-column, navy accents",
+    description: "Classic single-column, navy accents",
+    icon: FileText,
   },
   {
     id: "modern",
     name: "Modern",
-    description: "Two-column sidebar, teal-indigo gradient",
+    description: "Two-column sidebar, gradient",
+    icon: LayoutDashboard,
   },
   {
     id: "minimal",
     name: "Minimal",
-    description: "Clean, maximum whitespace, zero decoration",
+    description: "Maximum whitespace, zero decoration",
+    icon: Minus,
   },
 ];
 
@@ -25,21 +30,31 @@ export function TemplateSelector() {
   const { state, setTemplate } = useResumeStore();
 
   return (
-    <div className="flex gap-3">
-      {templates.map((t) => (
-        <button
-          key={t.id}
-          onClick={() => setTemplate(t.id)}
-          className={`flex-1 rounded-lg border-2 p-3 text-left transition-all ${
-            state.template === t.id
-              ? "border-indigo-500 bg-indigo-50"
-              : "border-gray-200 hover:border-gray-300 bg-white"
-          }`}
-        >
-          <p className="font-medium text-sm text-gray-900">{t.name}</p>
-          <p className="text-xs text-gray-500 mt-0.5">{t.description}</p>
-        </button>
-      ))}
+    <div className="flex gap-2">
+      {templates.map((t) => {
+        const Icon = t.icon;
+        const isActive = state.template === t.id;
+        return (
+          <button
+            key={t.id}
+            onClick={() => setTemplate(t.id)}
+            className={cn(
+              "flex-1 rounded-lg border-2 p-3 text-left transition-all",
+              isActive
+                ? "border-primary bg-primary/5 shadow-sm"
+                : "border-border hover:border-muted-foreground/30 bg-card"
+            )}
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <Icon className={cn("size-4", isActive ? "text-primary" : "text-muted-foreground")} />
+              <span className={cn("text-sm font-medium", isActive ? "text-primary" : "text-foreground")}>
+                {t.name}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground leading-snug">{t.description}</p>
+          </button>
+        );
+      })}
     </div>
   );
 }

@@ -1,9 +1,11 @@
 "use client";
 
 import { useResumeStore } from "@/hooks/useResumeStore";
-import { Textarea } from "@/components/ui/Input";
-import { Button } from "@/components/ui/Button";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { useRef } from "react";
+import { Upload, X } from "lucide-react";
 
 export function CustomStyleUploader() {
   const { state, setCustomCss } = useResumeStore();
@@ -23,25 +25,30 @@ export function CustomStyleUploader() {
 
   return (
     <div className="space-y-3">
-      <Textarea
-        label="Custom CSS"
-        value={state.customCss}
-        onChange={(e) => setCustomCss(e.target.value)}
-        placeholder={`.resume-custom .resume-name { color: #333; }\n.resume-custom .resume-section-title { border-color: red; }`}
-        rows={5}
-        className="font-mono text-xs"
-      />
+      <div className="space-y-2">
+        <Label>Custom CSS</Label>
+        <Textarea
+          value={state.customCss}
+          onChange={(e) => setCustomCss(e.target.value)}
+          placeholder={`.resume-custom .resume-name { color: #333; }\n.resume-custom .resume-section-title { border-color: red; }`}
+          rows={5}
+          className="font-mono text-xs"
+        />
+      </div>
       <div className="flex items-center gap-2">
         <Button
-          variant="secondary"
+          variant="outline"
           size="sm"
           onClick={() => fileRef.current?.click()}
+          className="gap-1.5"
         >
-          Upload CSS File
+          <Upload className="size-3.5" />
+          Upload CSS
         </Button>
         {state.customCss && (
-          <Button variant="ghost" size="sm" onClick={() => setCustomCss("")}>
-            Clear CSS
+          <Button variant="ghost" size="sm" onClick={() => setCustomCss("")} className="gap-1.5">
+            <X className="size-3.5" />
+            Clear
           </Button>
         )}
         <input

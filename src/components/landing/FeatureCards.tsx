@@ -1,59 +1,55 @@
 "use client";
 
-import { Card } from "@/components/ui/Card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Shield, Cpu, LayoutTemplate } from "lucide-react";
 
 const features = [
   {
     title: "100% Private",
     description:
-      "No servers, no databases, no tracking. Everything stays in your browser's localStorage. Export and leave - we keep nothing.",
-    icon: (
-      <svg className="w-8 h-8 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-      </svg>
-    ),
+      "No servers, no databases, no tracking. Everything stays in your browser's localStorage. Export and leave — we keep nothing.",
+    icon: Shield,
   },
   {
-    title: "AI-Powered via WebMCP",
+    title: "AI via WebMCP",
     description:
-      "Bring your own AI agent through WebMCP. Your agent reads and writes resume data through standardized tools - no API keys needed.",
-    icon: (
-      <svg className="w-8 h-8 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-      </svg>
-    ),
+      "Connect your AI agent through WebMCP. It reads and writes resume data through 18 standardized tools — no API keys needed.",
+    icon: Cpu,
   },
   {
-    title: "3 Beautiful Templates",
+    title: "3 Templates + CSS",
     description:
-      "Professional, Modern, and Minimal templates built for ATS compatibility. Plus, inject custom CSS to make it truly yours.",
-    icon: (
-      <svg className="w-8 h-8 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm0 8a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zm10 0a1 1 0 011-1h4a1 1 0 011 1v6a1 1 0 01-1 1h-4a1 1 0 01-1-1v-6z" />
-      </svg>
-    ),
+      "Professional, Modern, and Minimal templates built for ATS. Inject custom CSS to make it yours.",
+    icon: LayoutTemplate,
   },
 ];
 
 export function FeatureCards() {
   return (
-    <section className="bg-gray-50 py-20">
+    <section className="border-t bg-muted/30 py-20">
       <div className="max-w-5xl mx-auto px-6">
-        <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">
-          Why ResuMCP?
+        <h2 className="text-sm font-medium text-muted-foreground text-center mb-10 uppercase tracking-wider">
+          Why ResuMCP
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {features.map((feature) => (
-            <Card key={feature.title} className="text-center">
-              <div className="flex justify-center mb-4">{feature.icon}</div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                {feature.title}
-              </h3>
-              <p className="text-sm text-gray-600 leading-relaxed">
-                {feature.description}
-              </p>
-            </Card>
-          ))}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {features.map((feature) => {
+            const Icon = feature.icon;
+            return (
+              <Card key={feature.title} className="bg-card">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-center size-10 rounded-lg bg-primary/5 mb-3">
+                    <Icon className="size-5 text-primary" />
+                  </div>
+                  <CardTitle className="text-base">{feature.title}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {feature.description}
+                  </p>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       </div>
     </section>

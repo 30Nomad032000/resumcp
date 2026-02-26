@@ -1,43 +1,47 @@
 "use client";
 
+import { Separator } from "@/components/ui/separator";
+
 const steps = [
   {
-    number: "1",
+    number: "01",
     title: "Fill or Connect AI",
-    description: "Use the forms to enter your info manually, or connect your AI agent via WebMCP to populate everything automatically.",
+    description:
+      "Enter your info manually, or let your AI agent populate everything through WebMCP.",
   },
   {
-    number: "2",
+    number: "02",
     title: "Pick a Template",
-    description: "Choose from Professional, Modern, or Minimal. Customize further with your own CSS if you want.",
+    description:
+      "Choose Professional, Modern, or Minimal. Customize further with your own CSS.",
   },
   {
-    number: "3",
+    number: "03",
     title: "Download PDF",
-    description: "Hit download to get an ATS-friendly PDF with real selectable text. No rasterized images.",
+    description:
+      "Get an ATS-friendly PDF with real selectable text. Not rasterized — actual text.",
   },
 ];
 
 export function HowItWorks() {
   return (
-    <section className="bg-white py-20">
+    <section className="border-t py-20">
       <div className="max-w-4xl mx-auto px-6">
-        <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">
+        <h2 className="text-sm font-medium text-muted-foreground text-center mb-12 uppercase tracking-wider">
           How It Works
         </h2>
-        <div className="flex flex-col md:flex-row items-start gap-8">
-          {steps.map((step, i) => (
-            <div key={step.number} className="flex-1 text-center">
-              <div className="w-12 h-12 rounded-full bg-indigo-600 text-white text-xl font-bold flex items-center justify-center mx-auto mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {steps.map((step) => (
+            <div key={step.number} className="text-center">
+              <div className="text-4xl font-bold text-primary/15 mb-3 font-mono">
                 {step.number}
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              <h3 className="text-base font-semibold text-foreground mb-2">
                 {step.title}
               </h3>
-              <p className="text-sm text-gray-600">{step.description}</p>
-              {i < steps.length - 1 && (
-                <div className="hidden md:block absolute" />
-              )}
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {step.description}
+              </p>
             </div>
           ))}
         </div>

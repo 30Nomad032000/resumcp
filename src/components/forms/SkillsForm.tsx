@@ -7,8 +7,8 @@ export function SkillsForm() {
   const { state, addSkill, removeSkill } = useResumeStore();
 
   return (
-    <div className="space-y-2">
-      <p className="text-sm text-gray-500">
+    <div className="space-y-3">
+      <p className="text-sm text-muted-foreground">
         Type a skill and press Enter to add it.
       </p>
       <TagInput

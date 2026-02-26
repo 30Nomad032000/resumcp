@@ -1,20 +1,38 @@
 "use client";
 
 import { useWebMcp } from "@/hooks/useWebMcp";
+import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Cpu } from "lucide-react";
 
 export function WebMcpStatus() {
   const { available } = useWebMcp();
 
   return (
-    <div className="flex items-center gap-2 text-sm">
-      <div
-        className={`w-2.5 h-2.5 rounded-full ${
-          available ? "bg-green-500" : "bg-gray-400"
-        }`}
-      />
-      <span className="text-gray-600">
-        WebMCP {available ? "Connected" : "Not Available"}
-      </span>
-    </div>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Badge
+          variant={available ? "default" : "secondary"}
+          className="gap-1.5 cursor-default"
+        >
+          <span
+            className={`size-1.5 rounded-full ${
+              available ? "bg-green-400 animate-pulse" : "bg-muted-foreground/50"
+            }`}
+          />
+          <Cpu className="size-3" />
+          WebMCP
+        </Badge>
+      </TooltipTrigger>
+      <TooltipContent>
+        {available
+          ? "AI agent connected via WebMCP — 18 tools registered"
+          : "WebMCP not available in this browser. Use Chrome 146+ Canary."}
+      </TooltipContent>
+    </Tooltip>
   );
 }
