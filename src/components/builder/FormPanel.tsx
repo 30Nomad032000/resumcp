@@ -28,14 +28,26 @@ export function FormPanel() {
         <AccordionItem
           key={id}
           value={id}
-          className="rounded-lg border bg-card px-4 data-[state=open]:shadow-sm transition-shadow"
+          className="rounded-xl border px-4 transition-all duration-200 data-[state=open]:border-[#4ADE8020]"
+          style={{
+            background: "#1A1412",
+            borderColor: "#F0ECE30A",
+          }}
         >
           <AccordionTrigger className="hover:no-underline gap-3 py-3">
             <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center size-7 rounded-md bg-muted">
-                <Icon className="size-3.5 text-muted-foreground" />
+              <div
+                className="flex items-center justify-center size-7 rounded-lg"
+                style={{ background: "#4ADE8012" }}
+              >
+                <Icon className="size-3.5" style={{ color: "#4ADE80" }} />
               </div>
-              <span className="font-medium">{label}</span>
+              <span
+                className="font-medium text-sm"
+                style={{ color: "#F0ECE3", fontFamily: "var(--font-geist-sans), sans-serif" }}
+              >
+                {label}
+              </span>
             </div>
           </AccordionTrigger>
           <AccordionContent className="pb-4">

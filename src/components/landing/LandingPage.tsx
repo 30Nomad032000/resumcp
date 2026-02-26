@@ -742,16 +742,19 @@ function FeaturesSection() {
     {
       title: "100% Private",
       desc: "Your data lives in localStorage. No servers, no databases, no third-party analytics. Export and leave — we keep nothing.",
+      tag: null,
       Component: DiagnosticShuffler,
     },
     {
       title: "AI-Powered via WebMCP",
-      desc: "Connect your AI agent through the browser's native ModelContext protocol. 18 tools, zero API keys.",
+      desc: "Connect your AI agent through the browser's native ModelContext protocol. 18 tools, zero API keys. Requires Chrome Canary 146+ with the experimental flag enabled.",
+      tag: "Experimental",
       Component: TelemetryTypewriter,
     },
     {
       title: "ATS-Ready Templates",
       desc: "Three templates with real selectable text in PDF exports. Schedule your perfect layout.",
+      tag: null,
       Component: CursorScheduler,
     },
   ];
@@ -776,7 +779,7 @@ function FeaturesSection() {
         Three pillars. Zero compromise.
       </h2>
       <div className="features-grid grid grid-cols-1 md:grid-cols-3 gap-6">
-        {cards.map(({ title, desc, Component }) => (
+        {cards.map(({ title, desc, tag, Component }) => (
           <div
             key={title}
             className="feature-card p-6 border flex flex-col"
@@ -787,12 +790,27 @@ function FeaturesSection() {
               boxShadow: `0 2px 40px ${T.soil}08`,
             }}
           >
-            <h3
-              className="text-lg font-semibold tracking-tight mb-2"
-              style={{ color: T.root, fontFamily: "var(--font-geist-sans), sans-serif" }}
-            >
-              {title}
-            </h3>
+            <div className="flex items-center gap-2 mb-2">
+              <h3
+                className="text-lg font-semibold tracking-tight"
+                style={{ color: T.root, fontFamily: "var(--font-geist-sans), sans-serif" }}
+              >
+                {title}
+              </h3>
+              {tag && (
+                <span
+                  className="text-[0.6rem] tracking-wider uppercase px-2 py-0.5 rounded-full"
+                  style={{
+                    background: `${T.biolume}18`,
+                    color: T.biolume,
+                    border: `1px solid ${T.biolume}30`,
+                    fontFamily: "var(--font-fira-code), 'Fira Code', monospace",
+                  }}
+                >
+                  {tag}
+                </span>
+              )}
+            </div>
             <p
               className="text-xs leading-relaxed mb-6"
               style={{ color: T.root + "88" }}
@@ -893,67 +911,114 @@ function PhilosophySection() {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   E. PROTOCOL — "Sticky Stacking Archive"
+   E. PROTOCOL — "Illuminated Steps"
    ═══════════════════════════════════════════════════════════ */
 
-/* SVG Animations for each protocol card */
-function RotatingMotif() {
+/* Animated SVG icons for each step */
+function ProtocolIcon1() {
   return (
-    <svg viewBox="0 0 120 120" className="w-20 h-20 opacity-30 protocol-svg-spin">
-      {[0, 30, 60, 90, 120, 150].map((angle) => (
-        <ellipse
-          key={angle}
-          cx="60"
-          cy="60"
-          rx="50"
-          ry="20"
+    <svg viewBox="0 0 80 80" className="w-full h-full">
+      {/* Pulsing connection rings */}
+      {[0, 1, 2].map((i) => (
+        <circle
+          key={i}
+          cx="40"
+          cy="40"
+          r={16 + i * 10}
           fill="none"
           stroke={T.biolume}
-          strokeWidth="0.5"
-          transform={`rotate(${angle} 60 60)`}
+          strokeWidth="1"
+          opacity={0.6 - i * 0.15}
+          strokeDasharray="4 6"
+          className="protocol-svg-spin"
+          style={{ animationDuration: `${8 + i * 4}s`, animationDirection: i % 2 ? "reverse" : "normal" }}
+        />
+      ))}
+      {/* Center node */}
+      <circle cx="40" cy="40" r="6" fill={T.biolume} opacity="0.9" />
+      <circle cx="40" cy="40" r="10" fill="none" stroke={T.biolume} strokeWidth="1.5" opacity="0.5" />
+      {/* Satellite dots — precomputed to avoid hydration mismatch */}
+      {[
+        { cx: "68", cy: "40" },
+        { cx: "48.65", cy: "66.63" },
+        { cx: "17.35", cy: "53.54" },
+        { cx: "17.35", cy: "26.46" },
+        { cx: "48.65", cy: "13.37" },
+      ].map((pos, i) => (
+        <circle
+          key={i}
+          cx={pos.cx}
+          cy={pos.cy}
+          r="2.5"
+          fill={T.biolume}
+          opacity="0.7"
         />
       ))}
     </svg>
   );
 }
 
-function ScannerGrid() {
+function ProtocolIcon2() {
   return (
-    <svg viewBox="0 0 120 80" className="w-24 h-16 opacity-30">
-      {Array.from({ length: 8 }).map((_, r) =>
-        Array.from({ length: 12 }).map((_, c) => (
-          <circle
-            key={`${r}-${c}`}
-            cx={c * 10 + 5}
-            cy={r * 10 + 5}
-            r="1.5"
-            fill={T.biolume + "40"}
+    <svg viewBox="0 0 80 80" className="w-full h-full">
+      {/* Data flow lines */}
+      {[14, 28, 42, 56, 66].map((y, i) => (
+        <g key={i}>
+          <line
+            x1="8"
+            y1={y}
+            x2="72"
+            y2={y}
+            stroke={T.biolume}
+            strokeWidth="0.5"
+            opacity="0.15"
           />
-        ))
-      )}
-      <line
-        x1="0"
-        y1="0"
-        x2="120"
-        y2="0"
-        stroke={T.biolume}
-        strokeWidth="1"
-        className="protocol-scanner"
-      />
+          <rect
+            x={10 + i * 4}
+            y={y - 2}
+            width={20 + (i % 3) * 12}
+            height="4"
+            rx="2"
+            fill={T.biolume}
+            opacity={0.15 + (i * 0.12)}
+          >
+            <animate attributeName="width" values={`${20 + (i % 3) * 12};${30 + (i % 2) * 15};${20 + (i % 3) * 12}`} dur={`${2.5 + i * 0.3}s`} repeatCount="indefinite" />
+          </rect>
+        </g>
+      ))}
+      {/* Cursor / writing indicator */}
+      <rect x="58" y="36" width="2" height="10" rx="1" fill={T.biolume} opacity="0.8">
+        <animate attributeName="opacity" values="0.8;0.2;0.8" dur="1s" repeatCount="indefinite" />
+      </rect>
     </svg>
   );
 }
 
-function Waveform() {
+function ProtocolIcon3() {
   return (
-    <svg viewBox="0 0 200 60" className="w-32 h-10 opacity-30">
+    <svg viewBox="0 0 80 80" className="w-full h-full">
+      {/* Document shape */}
+      <rect x="18" y="10" width="44" height="56" rx="4" fill="none" stroke={T.biolume} strokeWidth="1.2" opacity="0.4" />
+      <rect x="18" y="10" width="44" height="56" rx="4" fill={T.biolume} opacity="0.05" />
+      {/* Text lines inside doc */}
+      {[22, 28, 34, 40, 46].map((y, i) => (
+        <rect key={i} x="26" y={y} width={i === 4 ? 18 : 28 - i * 2} height="2" rx="1" fill={T.biolume} opacity={0.25 + i * 0.05} />
+      ))}
+      {/* Download arrow */}
       <path
-        d="M0 30 Q10 30 20 30 T40 30 Q50 10 60 30 T80 30 Q90 50 100 30 T120 30 Q130 10 140 30 T160 30 Q170 50 180 30 T200 30"
+        d="M40 52 L40 68 M34 63 L40 69 L46 63"
         fill="none"
         stroke={T.biolume}
-        strokeWidth="1.5"
-        className="protocol-waveform"
-      />
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        opacity="0.9"
+      >
+        <animate attributeName="opacity" values="0.9;0.4;0.9" dur="2s" repeatCount="indefinite" />
+      </path>
+      {/* Checkmark */}
+      <circle cx="54" cy="18" r="6" fill={T.biolume} opacity="0.2" />
+      <path d="M51 18 L53 20 L57 16" fill="none" stroke={T.biolume} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.8" />
     </svg>
   );
 }
@@ -963,25 +1028,16 @@ function ProtocolSection() {
 
   useEffect(() => {
     const ctx = gsap.context(() => {
-      const cards = gsap.utils.toArray<HTMLElement>(".protocol-card");
-      cards.forEach((card, i) => {
-        if (i < cards.length - 1) {
-          ScrollTrigger.create({
-            trigger: card,
-            start: "top top",
-            end: "bottom top",
-            pin: true,
-            pinSpacing: false,
-            onUpdate: (self) => {
-              const progress = self.progress;
-              gsap.set(card, {
-                scale: 1 - progress * 0.1,
-                filter: `blur(${progress * 20}px)`,
-                opacity: 1 - progress * 0.5,
-              });
-            },
-          });
-        }
+      gsap.from(".protocol-step", {
+        y: 80,
+        opacity: 0,
+        duration: 1,
+        ease: "power3.out",
+        stagger: 0.2,
+        scrollTrigger: {
+          trigger: ".protocol-grid",
+          start: "top 75%",
+        },
       });
     }, sectionRef);
     return () => ctx.revert();
@@ -992,72 +1048,166 @@ function ProtocolSection() {
       num: "01",
       title: "Connect your agent",
       desc: "Open ResuMCP in a WebMCP-compatible browser. Your AI agent auto-discovers 18 tools for reading and writing resume data.",
-      Visual: RotatingMotif,
+      Icon: ProtocolIcon1,
     },
     {
       num: "02",
       title: "Shape your narrative",
       desc: "Your agent populates experience, education, skills, and projects — or fill the forms manually. Live preview updates instantly.",
-      Visual: ScannerGrid,
+      Icon: ProtocolIcon2,
     },
     {
       num: "03",
       title: "Export with precision",
       desc: "Download ATS-friendly PDFs with real selectable text. Choose from three templates or inject your own CSS.",
-      Visual: Waveform,
+      Icon: ProtocolIcon3,
     },
   ];
 
   return (
-    <section id="protocol" ref={sectionRef} style={{ background: T.bone }}>
-      <div className="px-8 md:px-16 pt-24 pb-8">
+    <section
+      id="protocol"
+      ref={sectionRef}
+      className="relative py-24 md:py-32 px-6 md:px-16 overflow-hidden"
+      style={{ background: T.soil }}
+    >
+      {/* Background grid + glow */}
+      <div
+        className="absolute inset-0 opacity-[0.03]"
+        style={{
+          backgroundImage: `
+            linear-gradient(${T.biolume}40 1px, transparent 1px),
+            linear-gradient(90deg, ${T.biolume}40 1px, transparent 1px)
+          `,
+          backgroundSize: "60px 60px",
+        }}
+      />
+      <div
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[60vh] rounded-full blur-[200px] pointer-events-none"
+        style={{ background: `radial-gradient(circle, ${T.biolume}12 0%, transparent 70%)` }}
+      />
+
+      {/* Header */}
+      <div className="relative z-10 mb-16 md:mb-20">
         <p
-          className="text-xs tracking-[0.3em] uppercase mb-4"
-          style={{ color: T.soil + "60", fontFamily: "var(--font-fira-code), 'Fira Code', monospace" }}
+          className="text-xs tracking-[0.3em] uppercase mb-4 flex items-center gap-3"
+          style={{ color: T.biolume, fontFamily: "var(--font-fira-code), 'Fira Code', monospace" }}
         >
+          <span className="inline-block w-8 h-[1px]" style={{ background: T.biolume }} />
           Protocol
         </p>
         <h2
-          className="text-3xl md:text-4xl font-bold tracking-tight mb-4"
-          style={{ color: T.root, fontFamily: "var(--font-geist-sans), sans-serif" }}
+          className="text-3xl md:text-5xl font-bold tracking-tight"
+          style={{ color: T.bone, fontFamily: "var(--font-geist-sans), sans-serif" }}
         >
-          Three steps. Nothing else.
+          Three steps.{" "}
+          <span
+            style={{
+              fontFamily: "var(--font-cormorant), 'Cormorant Garamond', serif",
+              fontStyle: "italic",
+              fontWeight: 300,
+              color: T.biolume,
+            }}
+          >
+            Nothing else.
+          </span>
         </h2>
       </div>
-      {steps.map(({ num, title, desc, Visual }) => (
-        <div
-          key={num}
-          className="protocol-card min-h-screen flex items-center px-8 md:px-16"
-          style={{ background: T.bone }}
-        >
-          <div className="max-w-2xl">
-            <div className="flex items-center gap-6 mb-6">
-              <span
-                className="text-6xl md:text-8xl font-bold"
+
+      {/* Steps */}
+      <div className="protocol-grid relative z-10 grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 max-w-6xl mx-auto">
+        {steps.map(({ num, title, desc, Icon }, i) => (
+          <div
+            key={num}
+            className="protocol-step group relative flex flex-col"
+            style={{
+              borderRadius: "1.5rem",
+              border: `1px solid ${T.biolume}18`,
+              background: `linear-gradient(160deg, ${T.soilLight}CC 0%, ${T.soil}DD 100%)`,
+              backdropFilter: "blur(12px)",
+              overflow: "hidden",
+            }}
+          >
+            {/* Top glow bar */}
+            <div
+              className="h-[2px] w-full"
+              style={{
+                background: `linear-gradient(90deg, transparent 0%, ${T.biolume}60 50%, transparent 100%)`,
+              }}
+            />
+
+            {/* Icon area */}
+            <div className="relative px-6 pt-8 pb-4">
+              <div
+                className="w-20 h-20 mb-6 relative"
                 style={{
-                  color: T.biolume + "20",
+                  filter: `drop-shadow(0 0 20px ${T.biolume}30)`,
+                }}
+              >
+                <Icon />
+              </div>
+
+              {/* Step number */}
+              <span
+                className="absolute top-6 right-6 text-5xl font-bold select-none"
+                style={{
+                  color: T.biolume + "12",
                   fontFamily: "var(--font-fira-code), 'Fira Code', monospace",
                 }}
               >
                 {num}
               </span>
-              <Visual />
             </div>
-            <h3
-              className="text-2xl md:text-4xl font-bold tracking-tight mb-4"
-              style={{ color: T.root, fontFamily: "var(--font-geist-sans), sans-serif" }}
-            >
-              {title}
-            </h3>
-            <p
-              className="text-sm md:text-base leading-relaxed max-w-md"
-              style={{ color: T.root + "88" }}
-            >
-              {desc}
-            </p>
+
+            {/* Content */}
+            <div className="px-6 pb-8 flex-1 flex flex-col">
+              <h3
+                className="text-xl md:text-2xl font-bold tracking-tight mb-3"
+                style={{ color: T.bone, fontFamily: "var(--font-geist-sans), sans-serif" }}
+              >
+                {title}
+              </h3>
+              <p
+                className="text-sm leading-relaxed"
+                style={{ color: T.bone + "77" }}
+              >
+                {desc}
+              </p>
+
+              {/* Bottom connector line (except last) */}
+              {i < 2 && (
+                <div className="hidden md:block absolute -right-4 top-1/2 w-8 h-[1px]" style={{ background: `linear-gradient(90deg, ${T.biolume}40, ${T.biolume}08)` }} />
+              )}
+            </div>
+
+            {/* Hover glow */}
+            <div
+              className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+              style={{
+                background: `radial-gradient(ellipse at 50% 0%, ${T.biolume}08 0%, transparent 70%)`,
+              }}
+            />
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
+
+      {/* Bottom timeline dots */}
+      <div className="relative z-10 flex items-center justify-center mt-16 gap-3">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="flex items-center gap-3">
+            <div
+              className="w-2 h-2 rounded-full"
+              style={{
+                background: T.biolume,
+                boxShadow: `0 0 8px ${T.biolume}60`,
+              }}
+            />
+            {i < 2 && (
+              <div className="w-12 h-[1px]" style={{ background: `linear-gradient(90deg, ${T.biolume}50, ${T.biolume}10)` }} />
+            )}
+          </div>
+        ))}
+      </div>
     </section>
   );
 }

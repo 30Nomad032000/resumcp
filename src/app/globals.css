@@ -58,10 +58,8 @@
     break-inside: avoid;
   }
 
-  /* Hide all UI chrome when printing */
-  header,
-  .no-print,
-  button {
+  /* Hide UI chrome when printing — scoped to avoid hiding resume content */
+  .no-print {
     display: none !important;
   }
 }
@@ -133,6 +131,62 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+}
+
+/* ─── Spore Network Theme (Builder) ─── */
+.spore-theme {
+  --radius: 0.75rem;
+  --background: #0D0D0D;
+  --foreground: #F0ECE3;
+  --card: #1A1412;
+  --card-foreground: #F0ECE3;
+  --popover: #1A1412;
+  --popover-foreground: #F0ECE3;
+  --primary: #4ADE80;
+  --primary-foreground: #0D0D0D;
+  --secondary: #2A2320;
+  --secondary-foreground: #F0ECE3;
+  --muted: #2A2320;
+  --muted-foreground: #F0ECE3AA;
+  --accent: #4ADE8020;
+  --accent-foreground: #4ADE80;
+  --destructive: #ef4444;
+  --border: #F0ECE318;
+  --input: #F0ECE320;
+  --ring: #4ADE8060;
+
+  /* Explicit color + background so children inherit the spore foreground,
+     not the body's computed :root foreground */
+  color: #F0ECE3;
+  background-color: #0D0D0D;
+}
+
+/* Spore theme: give inputs/textareas a visible background since dark: variant won't trigger */
+.spore-theme input[data-slot="input"],
+.spore-theme textarea[data-slot="textarea"] {
+  background-color: color-mix(in srgb, #F0ECE3 6%, transparent);
+}
+
+/* Spore theme: style checkboxes */
+.spore-theme input[type="checkbox"] {
+  accent-color: #4ADE80;
+}
+
+/* Spore theme: tag input wrapper background */
+.spore-theme .flex.border.border-input.bg-transparent {
+  background-color: color-mix(in srgb, #F0ECE3 6%, transparent);
+}
+
+/* Spore theme: accordion chevron visibility */
+.spore-theme [data-slot="accordion-trigger"] > svg {
+  color: #F0ECE366;
+}
+
+/* Spore theme: badge secondary — green tint */
+.spore-theme [data-slot="badge"][data-variant="secondary"] {
+  background-color: #4ADE8018;
+  color: #4ADE80;
+  border-color: #4ADE8030;
 }
 
 @layer base {

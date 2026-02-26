@@ -5,14 +5,28 @@ Privacy-first resume builder with WebMCP AI agent integration. No data collectio
 ## Features
 
 - **100% Private** — All data lives in your browser's `localStorage`. Nothing is sent to any server.
-- **AI-Powered via WebMCP** — Connect your own AI agent through the [WebMCP](https://anthropic.com/webmcp) protocol. The agent can read and write resume data through 18 registered tools.
+- **AI-Powered via WebMCP** — Connect your own AI agent through the [WebMCP](https://anthropic.com/webmcp) protocol. The agent can read and write resume data through 18 registered tools. *(Experimental — see [WebMCP Requirements](#webmcp-requirements) below)*
 - **3 Built-in Templates**
   - **Professional** — Serif fonts, single-column, navy accents, traditional corporate look
   - **Modern** — Two-column sidebar, teal-indigo gradient, pill badges for skills
   - **Minimal** — System sans-serif, single-column, pure black on white, maximum whitespace
 - **Custom CSS** — Paste or upload your own CSS to override any template styles (scoped under `.resume-custom`)
-- **ATS-Friendly PDF Export** — Uses `react-to-print` to produce real selectable text, not rasterized images
+- **Instant PDF Download** — Generates a clean PDF directly in the browser — no print dialog, no browser headers/footers
 - **Manual or AI** — Fill forms by hand or let your AI agent do it. Both work seamlessly.
+
+## WebMCP Requirements
+
+> **WebMCP is experimental.** The `navigator.modelContext` API is not yet available in stable browsers. There is no confirmed release date for when it will ship.
+
+To use the AI-powered features:
+
+1. Install [Chrome Canary](https://www.google.com/chrome/canary/) (version 146+)
+2. Navigate to `chrome://flags/#model-context-protocol`
+3. Set the flag to **Enabled**
+4. Restart the browser
+5. Open the ResuMCP builder — the WebMCP badge should turn green
+
+**Without WebMCP**, everything else works normally — manual form filling, template switching, custom CSS, and PDF export all function in any modern browser.
 
 ## Tech Stack
 
@@ -20,11 +34,11 @@ Privacy-first resume builder with WebMCP AI agent integration. No data collectio
 |-------|-----------|
 | Framework | Next.js 15 (App Router) |
 | Language | TypeScript |
-| Styling | Tailwind CSS |
+| Styling | Tailwind CSS + shadcn/ui |
 | State | React Context + useReducer |
 | Persistence | localStorage (single key: `resumcp_data`) |
-| PDF | react-to-print |
-| AI Integration | WebMCP (`navigator.modelContext`) |
+| PDF | html2canvas-pro + jsPDF |
+| AI Integration | WebMCP (`navigator.modelContext`) — experimental |
 
 ## Getting Started
 
@@ -50,7 +64,7 @@ src/
 │   ├── builder/                # BuilderLayout, FormPanel, PreviewPanel, TemplateSelector
 │   ├── forms/                  # PersonalInfo, Experience, Education, Skills, Projects
 │   ├── templates/              # Professional, Modern, Minimal, TemplateWrapper
-│   └── ui/                     # Button, Input, Card, TagInput
+│   └── ui/                     # shadcn/ui components + TagInput
 ├── context/ResumeContext.tsx    # State management
 ├── hooks/                      # useResumeStore, useWebMcp, usePdfExport
 ├── webmcp/                     # WebMCP tool registration (18 tools)
