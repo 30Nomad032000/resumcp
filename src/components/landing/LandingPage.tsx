@@ -120,199 +120,266 @@ function MyceliumCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mouseRef = useRef({ x: -1000, y: -1000 });
   const animRef = useRef<number>(0);
+  const visibleRef = useRef(true);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext("2d")!;
+    const ctx = canvas.getContext("2d", { alpha: true })!;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
+    // Cache dimensions — update on resize only
+    let w = window.innerWidth;
+    let h = window.innerHeight;
+
     const resize = () => {
-      canvas.width = window.innerWidth * dpr;
-      canvas.height = window.innerHeight * dpr;
-      canvas.style.width = window.innerWidth + "px";
-      canvas.style.height = window.innerHeight + "px";
-      ctx.scale(dpr, dpr);
+      w = window.innerWidth;
+      h = window.innerHeight;
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      canvas.style.width = w + "px";
+      canvas.style.height = h + "px";
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      drawGrid();
     };
+
+    // --- Pre-render static grid to offscreen canvas ---
+    let gridCanvas: HTMLCanvasElement;
+    const drawGrid = () => {
+      gridCanvas = document.createElement("canvas");
+      gridCanvas.width = w * dpr;
+      gridCanvas.height = h * dpr;
+      const gc = gridCanvas.getContext("2d")!;
+      gc.setTransform(dpr, 0, 0, dpr, 0, 0);
+      gc.strokeStyle = "rgba(74, 222, 128, 0.03)";
+      gc.lineWidth = 0.5;
+      const gridSize = 60;
+      gc.beginPath();
+      for (let x = 0; x < w; x += gridSize) {
+        gc.moveTo(x, 0); gc.lineTo(x, h);
+      }
+      for (let y = 0; y < h; y += gridSize) {
+        gc.moveTo(0, y); gc.lineTo(w, y);
+      }
+      gc.stroke();
+    };
+
     resize();
     window.addEventListener("resize", resize);
 
-    const W = () => window.innerWidth;
-    const H = () => window.innerHeight;
+    // --- Pre-render glow sprite (replaces per-frame createRadialGradient) ---
+    const GLOW_SIZE = 64;
+    const glowSprite = document.createElement("canvas");
+    glowSprite.width = GLOW_SIZE;
+    glowSprite.height = GLOW_SIZE;
+    const gs = glowSprite.getContext("2d")!;
+    const grad = gs.createRadialGradient(GLOW_SIZE / 2, GLOW_SIZE / 2, 0, GLOW_SIZE / 2, GLOW_SIZE / 2, GLOW_SIZE / 2);
+    grad.addColorStop(0, "rgba(74, 222, 128, 0.3)");
+    grad.addColorStop(0.5, "rgba(74, 222, 128, 0.06)");
+    grad.addColorStop(1, "rgba(74, 222, 128, 0)");
+    gs.fillStyle = grad;
+    gs.fillRect(0, 0, GLOW_SIZE, GLOW_SIZE);
 
-    // Dense particle field: cluster heavily around center-right
-    const TOTAL = 200;
-    const nodes: { x: number; y: number; vx: number; vy: number; r: number; phase: number; anchor: boolean }[] = [];
+    // --- Particles: reduced to 120 ---
+    const TOTAL = 120;
+    const nodes: { x: number; y: number; vx: number; vy: number; r: number; phase: number }[] = [];
     for (let i = 0; i < TOTAL; i++) {
-      // 60% clustered in center-right blob, 40% scattered
       const clustered = i < TOTAL * 0.6;
-      const cx = W() * 0.62;
-      const cy = H() * 0.42;
-      const spread = Math.min(W(), H()) * 0.35;
+      const cx = w * 0.62, cy = h * 0.42;
+      const spread = Math.min(w, h) * 0.35;
       const angle = Math.random() * Math.PI * 2;
-      const dist = clustered ? Math.random() * spread * (0.3 + Math.random() * 0.7) : Math.random() * Math.max(W(), H()) * 0.7;
+      const dist = clustered
+        ? Math.random() * spread * (0.3 + Math.random() * 0.7)
+        : Math.random() * Math.max(w, h) * 0.7;
+      const r = i < 6 ? 3 + Math.random() * 3 : clustered ? 1 + Math.random() * 2 : 0.5 + Math.random() * 1;
       nodes.push({
-        x: clustered ? cx + Math.cos(angle) * dist : Math.random() * W(),
-        y: clustered ? cy + Math.sin(angle) * dist : Math.random() * H(),
-        vx: (Math.random() - 0.5) * 0.15,
-        vy: (Math.random() - 0.5) * 0.15,
-        r: clustered ? 1 + Math.random() * 2.5 : 0.5 + Math.random() * 1,
-        phase: Math.random() * Math.PI * 2,
-        anchor: i < 8, // first few are large anchor nodes
+        x: clustered ? cx + Math.cos(angle) * dist : Math.random() * w,
+        y: clustered ? cy + Math.sin(angle) * dist : Math.random() * h,
+        vx: (Math.random() - 0.5) * 0.12,
+        vy: (Math.random() - 0.5) * 0.12,
+        r, phase: Math.random() * Math.PI * 2,
       });
     }
-    // Make anchor nodes bigger
-    for (let i = 0; i < 8; i++) {
-      nodes[i].r = 3 + Math.random() * 3;
-    }
 
-    const CONNECT = 130;
-    const MOUSE_R = 250;
+    const CONNECT = 110; // reduced from 130
+    const CONNECT_SQ = CONNECT * CONNECT; // avoid sqrt
+    const MOUSE_R = 220;
+    const MOUSE_R_SQ = MOUSE_R * MOUSE_R;
+
+    // --- Spatial grid for O(n) neighbor lookups ---
+    const CELL = CONNECT;
+    let cols = 0, rows = 0;
+    let grid: number[][] = [];
+    const rebuildGrid = () => {
+      cols = Math.ceil(w / CELL) + 1;
+      rows = Math.ceil(h / CELL) + 1;
+      grid = new Array(cols * rows);
+      for (let i = 0; i < grid.length; i++) grid[i] = [];
+      for (let i = 0; i < nodes.length; i++) {
+        const c = Math.floor(nodes[i].x / CELL);
+        const r = Math.floor(nodes[i].y / CELL);
+        if (c >= 0 && c < cols && r >= 0 && r < rows) {
+          grid[r * cols + c].push(i);
+        }
+      }
+    };
+
+    // --- Pause when off-screen ---
+    const obs = new IntersectionObserver(([e]) => { visibleRef.current = e.isIntersecting; }, { threshold: 0 });
+    obs.observe(canvas);
 
     const animate = () => {
+      animRef.current = requestAnimationFrame(animate);
+      if (!visibleRef.current) return; // skip when not visible
+
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.clearRect(0, 0, W(), H());
+      ctx.clearRect(0, 0, w, h);
+
+      // Blit cached grid
+      ctx.drawImage(gridCanvas, 0, 0, w, h);
 
       const mx = mouseRef.current.x;
       const my = mouseRef.current.y;
       const t = Date.now() * 0.001;
       const mouseOn = mx > -500;
 
-      // --- Draw subtle grid ---
-      ctx.strokeStyle = `rgba(74, 222, 128, 0.03)`;
-      ctx.lineWidth = 0.5;
-      const gridSize = 60;
-      for (let x = 0; x < W(); x += gridSize) {
-        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H()); ctx.stroke();
-      }
-      for (let y = 0; y < H(); y += gridSize) {
-        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W(), y); ctx.stroke();
-      }
-
       // --- Update particles ---
       for (const p of nodes) {
-        p.phase += 0.015;
-
-        // Organic drift
-        p.vx += Math.sin(t * 0.5 + p.y * 0.003) * 0.002;
-        p.vy += Math.cos(t * 0.5 + p.x * 0.003) * 0.002;
-
-        // Mouse attraction (gentle pull toward cursor)
+        p.phase += 0.012;
+        p.vx += Math.sin(t * 0.5 + p.y * 0.003) * 0.0015;
+        p.vy += Math.cos(t * 0.5 + p.x * 0.003) * 0.0015;
         if (mouseOn) {
-          const dx = mx - p.x;
-          const dy = my - p.y;
-          const d = Math.sqrt(dx * dx + dy * dy);
-          if (d < MOUSE_R && d > 1) {
-            const f = ((MOUSE_R - d) / MOUSE_R) * 0.008;
+          const dx = mx - p.x, dy = my - p.y;
+          const dSq = dx * dx + dy * dy;
+          if (dSq < MOUSE_R_SQ && dSq > 1) {
+            const d = Math.sqrt(dSq);
+            const f = ((MOUSE_R - d) / MOUSE_R) * 0.006;
             p.vx += (dx / d) * f;
             p.vy += (dy / d) * f;
           }
         }
-
-        p.vx *= 0.992;
-        p.vy *= 0.992;
-        p.x += p.vx;
-        p.y += p.vy;
-
-        // Soft bounds (don't hard-wrap, pull back)
+        p.vx *= 0.993; p.vy *= 0.993;
+        p.x += p.vx; p.y += p.vy;
         if (p.x < -50) p.vx += 0.02;
-        if (p.x > W() + 50) p.vx -= 0.02;
+        if (p.x > w + 50) p.vx -= 0.02;
         if (p.y < -50) p.vy += 0.02;
-        if (p.y > H() + 50) p.vy -= 0.02;
+        if (p.y > h + 50) p.vy -= 0.02;
       }
 
-      // --- Draw connections first (behind nodes) ---
-      for (let i = 0; i < nodes.length; i++) {
-        const a = nodes[i];
-        for (let j = i + 1; j < nodes.length; j++) {
-          const b = nodes[j];
-          const dx = a.x - b.x;
-          const dy = a.y - b.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < CONNECT) {
-            const alpha = (1 - dist / CONNECT);
+      // --- Rebuild spatial grid ---
+      rebuildGrid();
 
-            // Mouse proximity boost
-            let boost = 0;
-            if (mouseOn) {
-              const midX = (a.x + b.x) / 2;
-              const midY = (a.y + b.y) / 2;
-              const dm = Math.sqrt((midX - mx) ** 2 + (midY - my) ** 2);
-              if (dm < MOUSE_R) boost = (1 - dm / MOUSE_R) * 0.6;
+      // --- Draw connections (batched by alpha band) ---
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.strokeStyle = "rgba(74, 222, 128, 0.12)";
+      ctx.lineWidth = 0.6;
+
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const cell = grid[r * cols + c];
+          if (!cell.length) continue;
+          // Check this cell + 4 neighbors (right, below, below-right, below-left)
+          const neighbors = [r * cols + c];
+          if (c + 1 < cols) neighbors.push(r * cols + c + 1);
+          if (r + 1 < rows) {
+            neighbors.push((r + 1) * cols + c);
+            if (c + 1 < cols) neighbors.push((r + 1) * cols + c + 1);
+            if (c - 1 >= 0) neighbors.push((r + 1) * cols + c - 1);
+          }
+          for (const ci of cell) {
+            const a = nodes[ci];
+            for (const ni of neighbors) {
+              const ncell = grid[ni];
+              for (const cj of ncell) {
+                if (cj <= ci) continue;
+                const b = nodes[cj];
+                const dx = a.x - b.x, dy = a.y - b.y;
+                const dSq = dx * dx + dy * dy;
+                if (dSq < CONNECT_SQ) {
+                  ctx.moveTo(a.x, a.y);
+                  ctx.lineTo(b.x, b.y);
+                }
+              }
             }
-
-            const finalAlpha = alpha * 0.15 + boost * 0.3;
-            const lineW = 0.3 + alpha * 0.8 + boost * 1.5;
-
-            // Organic curved lines
-            const cpx = (a.x + b.x) / 2 + Math.sin(t + i * 0.07) * 6;
-            const cpy = (a.y + b.y) / 2 + Math.cos(t + j * 0.07) * 6;
-
-            ctx.beginPath();
-            ctx.moveTo(a.x, a.y);
-            ctx.quadraticCurveTo(cpx, cpy, b.x, b.y);
-            ctx.strokeStyle = `rgba(74, 222, 128, ${finalAlpha})`;
-            ctx.lineWidth = lineW;
-            ctx.stroke();
           }
         }
       }
+      ctx.stroke();
 
-      // --- Draw nodes ---
+      // --- Mouse-proximity bright connections (small separate pass) ---
+      if (mouseOn) {
+        ctx.beginPath();
+        ctx.strokeStyle = "rgba(74, 222, 128, 0.35)";
+        ctx.lineWidth = 1.2;
+        const mc = Math.floor(mx / CELL), mr = Math.floor(my / CELL);
+        const range = 3;
+        for (let dr = -range; dr <= range; dr++) {
+          for (let dc = -range; dc <= range; dc++) {
+            const nr = mr + dr, nc = mc + dc;
+            if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) continue;
+            const cell = grid[nr * cols + nc];
+            for (const ci of cell) {
+              const a = nodes[ci];
+              const dma = (a.x - mx) ** 2 + (a.y - my) ** 2;
+              if (dma > MOUSE_R_SQ) continue;
+              // Check neighbors of this particle
+              const pc = Math.floor(a.x / CELL), pr = Math.floor(a.y / CELL);
+              for (let dr2 = -1; dr2 <= 1; dr2++) {
+                for (let dc2 = -1; dc2 <= 1; dc2++) {
+                  const nr2 = pr + dr2, nc2 = pc + dc2;
+                  if (nr2 < 0 || nr2 >= rows || nc2 < 0 || nc2 >= cols) continue;
+                  for (const cj of grid[nr2 * cols + nc2]) {
+                    if (cj <= ci) continue;
+                    const b = nodes[cj];
+                    const dSq = (a.x - b.x) ** 2 + (a.y - b.y) ** 2;
+                    if (dSq < CONNECT_SQ) {
+                      ctx.moveTo(a.x, a.y);
+                      ctx.lineTo(b.x, b.y);
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+        ctx.stroke();
+      }
+
+      // --- Draw nodes using pre-rendered glow sprite ---
       for (const p of nodes) {
         const pulse = 0.5 + Math.sin(p.phase) * 0.3;
+        const alpha = pulse * 0.5;
+        const glowSize = p.r * 6;
 
-        // Mouse proximity glow
-        let mBright = 0;
-        if (mouseOn) {
-          const dm = Math.sqrt((p.x - mx) ** 2 + (p.y - my) ** 2);
-          if (dm < MOUSE_R) mBright = (1 - dm / MOUSE_R);
-        }
-
-        const alpha = pulse * 0.6 + mBright * 0.4;
-        const r = p.r * (1 + Math.sin(p.phase) * 0.2);
-
-        // Outer glow
-        const glowR = r * (3 + mBright * 4);
-        const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, glowR);
-        gradient.addColorStop(0, `rgba(74, 222, 128, ${alpha * 0.3})`);
-        gradient.addColorStop(0.5, `rgba(74, 222, 128, ${alpha * 0.08})`);
-        gradient.addColorStop(1, `rgba(74, 222, 128, 0)`);
+        ctx.globalAlpha = alpha;
+        ctx.drawImage(glowSprite, p.x - glowSize / 2, p.y - glowSize / 2, glowSize, glowSize);
+        ctx.globalAlpha = 0.5 + alpha * 0.5;
         ctx.beginPath();
-        ctx.arc(p.x, p.y, glowR, 0, Math.PI * 2);
-        ctx.fillStyle = gradient;
-        ctx.fill();
-
-        // Core
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(74, 222, 128, ${0.4 + alpha * 0.6})`;
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = "#4ADE80";
         ctx.fill();
       }
+      ctx.globalAlpha = 1;
 
-      // --- Mouse halo ---
+      // --- Mouse halo (single pre-computed gradient, reused) ---
       if (mouseOn) {
-        const haloGrad = ctx.createRadialGradient(mx, my, 0, mx, my, MOUSE_R * 0.6);
-        haloGrad.addColorStop(0, `rgba(74, 222, 128, 0.06)`);
-        haloGrad.addColorStop(1, `rgba(74, 222, 128, 0)`);
-        ctx.beginPath();
-        ctx.arc(mx, my, MOUSE_R * 0.6, 0, Math.PI * 2);
-        ctx.fillStyle = haloGrad;
-        ctx.fill();
+        ctx.globalAlpha = 0.07;
+        ctx.drawImage(glowSprite, mx - MOUSE_R * 0.6, my - MOUSE_R * 0.6, MOUSE_R * 1.2, MOUSE_R * 1.2);
+        ctx.globalAlpha = 1;
       }
-
-      animRef.current = requestAnimationFrame(animate);
     };
     animate();
 
     const onMouse = (e: MouseEvent) => { mouseRef.current = { x: e.clientX, y: e.clientY }; };
     const onTouch = (e: TouchEvent) => { if (e.touches[0]) mouseRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; };
     const onLeave = () => { mouseRef.current = { x: -1000, y: -1000 }; };
-    window.addEventListener("mousemove", onMouse);
-    window.addEventListener("touchmove", onTouch);
+    window.addEventListener("mousemove", onMouse, { passive: true });
+    window.addEventListener("touchmove", onTouch, { passive: true });
     window.addEventListener("mouseleave", onLeave);
     return () => {
       cancelAnimationFrame(animRef.current);
+      obs.disconnect();
       window.removeEventListener("resize", resize);
       window.removeEventListener("mousemove", onMouse);
       window.removeEventListener("touchmove", onTouch);
@@ -363,29 +430,17 @@ function HeroSection() {
     >
       <MyceliumCanvas />
 
-      {/* Ambient glow blobs */}
-      <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 2 }}>
-        <div
-          className="absolute rounded-full blur-[120px]"
-          style={{
-            width: "50vw",
-            height: "50vh",
-            right: "5%",
-            top: "15%",
-            background: `radial-gradient(circle, ${T.biolume}18 0%, transparent 70%)`,
-          }}
-        />
-        <div
-          className="absolute rounded-full blur-[100px]"
-          style={{
-            width: "30vw",
-            height: "30vh",
-            right: "25%",
-            top: "30%",
-            background: `radial-gradient(circle, ${T.biolume}10 0%, transparent 70%)`,
-          }}
-        />
-      </div>
+      {/* Ambient glow — radial gradients only, no CSS blur */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          zIndex: 2,
+          background: `
+            radial-gradient(ellipse 60% 50% at 70% 35%, ${T.biolume}0C 0%, transparent 100%),
+            radial-gradient(ellipse 40% 40% at 55% 45%, ${T.biolume}08 0%, transparent 100%)
+          `,
+        }}
+      />
 
       {/* Bottom gradient for text readability */}
       <div
@@ -1083,8 +1138,8 @@ function ProtocolSection() {
         }}
       />
       <div
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[60vh] rounded-full blur-[200px] pointer-events-none"
-        style={{ background: `radial-gradient(circle, ${T.biolume}12 0%, transparent 70%)` }}
+        className="absolute inset-0 pointer-events-none"
+        style={{ background: `radial-gradient(ellipse 70% 50% at 50% 50%, ${T.biolume}0A 0%, transparent 100%)` }}
       />
 
       {/* Header */}
@@ -1235,8 +1290,8 @@ function CtaSection() {
   return (
     <section
       ref={ref}
-      className="py-32 md:py-40 px-8 md:px-16 text-center"
-      style={{ background: T.bone }}
+      className="pt-32 md:pt-40 pb-48 md:pb-56 px-8 md:px-16 text-center"
+      style={{ background: `linear-gradient(to bottom, ${T.bone} 60%, ${T.soil} 100%)` }}
     >
       <div className="cta-content max-w-2xl mx-auto">
         <p
@@ -1283,7 +1338,7 @@ function CtaSection() {
 function Footer() {
   return (
     <footer
-      className="px-8 md:px-16 py-16"
+      className="px-8 md:px-16 py-16 -mt-16 relative z-10"
       style={{
         background: T.soil,
         borderRadius: "4rem 4rem 0 0",
@@ -1376,29 +1431,12 @@ function Footer() {
 /* ═══════════════════════════════════════════════════════════
    NOISE OVERLAY
    ═══════════════════════════════════════════════════════════ */
-function NoiseOverlay() {
-  return (
-    <svg className="fixed inset-0 w-full h-full pointer-events-none z-[9999] opacity-[0.04]">
-      <filter id="noise">
-        <feTurbulence
-          type="fractalNoise"
-          baseFrequency="0.65"
-          numOctaves="3"
-          stitchTiles="stitch"
-        />
-      </filter>
-      <rect width="100%" height="100%" filter="url(#noise)" />
-    </svg>
-  );
-}
-
 /* ═══════════════════════════════════════════════════════════
    MAIN LANDING PAGE EXPORT
    ═══════════════════════════════════════════════════════════ */
 export default function LandingPage() {
   return (
     <>
-      <NoiseOverlay />
       <Navbar />
       <HeroSection />
       <FeaturesSection />
